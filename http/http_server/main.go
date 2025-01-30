@@ -3,19 +3,21 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"log"
 	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 const (
 	createNoteURL = "/notes"
 	getNoteURL    = "/notes/{id}"
+	allNoteURL    = "/notes"
 )
 
 type NoteInfo struct {
@@ -104,8 +106,16 @@ func getNoteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func allNoteHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if err := json.NewEncoder(w).Encode(notes.elems); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+}
+
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	addr := flag.String("addr", "localhost:8081", "HTTP server address")
 	flag.Parse()
 	r := chi.NewRouter()
@@ -117,6 +127,7 @@ func main() {
 
 	r.Post(createNoteURL, createNoteHandler)
 	r.Get(getNoteURL, getNoteHandler)
+	r.Get(allNoteURL, allNoteHandler)
 
 	log.Printf("Server running on %s", *addr)
 	if err := http.ListenAndServe(*addr, r); err != nil {
